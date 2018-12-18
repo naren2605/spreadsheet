@@ -2,6 +2,7 @@ package proj.redmart.models.spreadsheet.visitor;
 
 
 import proj.redmart.models.spreadsheet.RowColumnLayout;
+import proj.redmart.models.spreadsheet.cellutils.CellIdentifier;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -16,28 +17,53 @@ public class PostFixCellEvaluator {
 
     private Set<RCNode> visited;
 
+    private PostFixFormulaParser postFixFormulaParser;
+
     public PostFixCellEvaluator(RowColumnLayout rowColumnLayout, EdgeList edgeList) {
         this.rowColumnLayout = rowColumnLayout;
         this.edgeList = edgeList;
         visited = new HashSet<RCNode>();
+        postFixFormulaParser=new PostFixFormulaParser(edgeList);
     }
 
-    public void evaluate(RCNode node){
 
-        if(node.isFormulaCell()){
-                String formula=rowColumnLayout.getContainer().get(node.getRow()).get(node.getColumn()).getData();
-                PostFixFormulaParser parser =new PostFixFormulaParser(formula);
-                PostFixExpression postFixExpression=parser.parse();
+
+
+
+
+
+
+
+    public void visitAllCellsAndFormDirectedGraph(){
+        for (int row:rowColumnLayout.getContainer().keySet()){
+            for (int col:rowColumnLayout.getContainer().get(row).keySet()){
+                PostFixExpression postFixExpression=postFixFormulaParser.parse(rowColumnLayout.getContainer().get(row).get(col).getData());
                 for (ExpressionElement expressionElement:postFixExpression.getExpressionElements()){
-
-                    if(expressionElement instanceof Operator){
-
-                    }else if(expressionElement instanceof Operand){
-
-                    }else if(expressionElement instanceof DataElement){
-
+                    if(expressionElement instanceof ReferenceElement){
+                        ReferenceElement element=(ReferenceElement)expressionElement;
+                        RCNode source=RCNode.Builder.getBuilder().addRow(row).addColumn(col).build(rowColumnLayout.getContainer().get(row).get(col));
+                        RCNode target=element.getNode();
+                        edgeList.getContainer().link(source,target);
                     }
+                    visit(expressionElement);
+                }
+            }
+        }
+    }
 
+
+    private void visit(ExpressionElement parentExpressionElement){
+        if(parentExpressionElement instanceof ReferenceElement){
+            ReferenceElement parent=(ReferenceElement) parentExpressionElement;
+            RCNode node = ((ReferenceElement)parentExpressionElement).getNode();
+                String formula=rowColumnLayout.getContainer().get(node.getRow()).get(node.getColumn()).getData();
+                PostFixExpression postFixExpression=postFixFormulaParser.parse(formula);
+                for (ExpressionElement expressionElement:postFixExpression.getExpressionElements()){
+                    if(expressionElement instanceof ReferenceElement){
+                        ReferenceElement target=(ReferenceElement) expressionElement;
+                        edgeList.getContainer().link(parent.getNode(),target.getNode());
+                        visit(expressionElement);
+                    }
                 }
         }
     }
@@ -77,7 +103,7 @@ public class PostFixCellEvaluator {
 
 
 
-    public enum Operator implements ExpressionElement {
+    private enum Operator implements ExpressionElement {
         PLUS("+"), MINUS("-"), MULTIPLY("*"), DIVIDE("/");
         private String symbol;
 
@@ -98,11 +124,11 @@ public class PostFixCellEvaluator {
     }
 
 
-    public static interface ExpressionElement {
+    private static interface ExpressionElement {
 
     }
 
-    public static class PostFixExpression {
+    private static class PostFixExpression {
         private List<ExpressionElement> expressionElements;
 
         public PostFixExpression() {
@@ -120,16 +146,16 @@ public class PostFixCellEvaluator {
 
     public static class PostFixFormulaParser {
 
-        private String formula;
+        private EdgeList edgeList;
 
-        public PostFixFormulaParser(String formula) {
-            this.formula = formula;
+        public PostFixFormulaParser(EdgeList edgeList) {
+            this.edgeList=edgeList;
         }
 
 
-        PostFixExpression parse() {
+        PostFixExpression parse(String formula) {
             String[] elemenents = formula.split(" +");
-            ExpressionElementBuilder expressionElementBuilder=new ExpressionElementBuilder();
+            ExpressionElementBuilder expressionElementBuilder=new ExpressionElementBuilder(edgeList);
             for(String element:elemenents){
                     expressionElementBuilder.add(element);
             }
@@ -138,13 +164,15 @@ public class PostFixCellEvaluator {
 
     }
 
-    public static class ExpressionElementBuilder {
+    private static class ExpressionElementBuilder {
 
         private PostFixExpression postFixExpression;
+        private EdgeList edgeList;
 
 
-        public ExpressionElementBuilder() {
+        private ExpressionElementBuilder(EdgeList edgeList) {
             postFixExpression = new PostFixExpression();
+            this.edgeList=edgeList;
         }
 
         public void add(String element) {
@@ -154,7 +182,7 @@ public class PostFixCellEvaluator {
                 postFixExpression.add(new DataElement(element));
             }
             else {
-                postFixExpression.add(new Operand.Builder(element).getOperand());
+                postFixExpression.add(new ReferenceElement.Builder(edgeList).getOperand(element));
             }
         }
 
@@ -170,12 +198,13 @@ public class PostFixCellEvaluator {
         }
     }
 
-    public static class Operand implements ExpressionElement {
+    public static class ReferenceElement implements ExpressionElement {
         private RCNode node;
         private boolean evaluated;
         private String evaluationResult;
 
-        public Operand(RCNode rcNode) {
+
+        public ReferenceElement(RCNode rcNode) {
             this.node = rcNode;
         }
 
@@ -193,6 +222,7 @@ public class PostFixCellEvaluator {
 
         public void setEvaluationResult(String evaluationResult) {
             this.evaluationResult = evaluationResult;
+            this.evaluated=true;
         }
 
         public boolean isEvaluated() {
@@ -203,22 +233,39 @@ public class PostFixCellEvaluator {
             this.evaluated = evaluated;
         }
 
+        public static Builder getBuilder(EdgeList edgeList){
+            return new Builder(edgeList);
+        }
+
+
+
         public static class Builder {
-            private Operand operand;
+            private EdgeList edgeList;
 
-            public Builder(String data) {
-                operand = new Operand(getNode(data));
+            private Builder(EdgeList edgeList) {
+                this.edgeList=edgeList;
             }
 
-            public Operand getOperand() {
-                return operand;
+            public ReferenceElement getOperand(String  cellIdentity) {
+                return  new ReferenceElement(getNode(cellIdentity));
             }
 
-            private RCNode getNode(String data) {
-                /*
-                convert string representation of column to row column rc node represetation
-                 */
-                return null;
+
+            private int getRow(String cellIdentity){
+                return 0;
+            }
+
+            private int getColumn(String cellIdentity){
+                return 0;
+            }
+
+            private RCNode getNode(String cellIdentity) {
+                CellIdentifier identifier=CellIdentifier.getIdentifier();
+                RCNode queryNode=RCNode.Builder.getBuilder()
+                        .addRow(identifier.getRowNumber(cellIdentity))
+                        .addColumn(identifier.getColumnNumber(cellIdentity))
+                        .build(null);
+                return (RCNode)edgeList.getContainer().getNode(queryNode);
             }
 
         }

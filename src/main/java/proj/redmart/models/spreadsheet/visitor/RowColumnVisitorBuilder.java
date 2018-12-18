@@ -1,10 +1,8 @@
 package proj.redmart.models.spreadsheet.visitor;
 
+import proj.redmart.models.spreadsheet.Cell;
 import proj.redmart.models.spreadsheet.RowColumnLayout;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 
 public class RowColumnVisitorBuilder implements EdgeListGraphBuilder,NodeBuilder {
 
@@ -22,7 +20,7 @@ public class RowColumnVisitorBuilder implements EdgeListGraphBuilder,NodeBuilder
 
     public NodeBuilder createEmptyGraph() {
         edgeList=new EdgeList();
-        edgeList.setContainer(new HashMap<Node, List<Node>>());
+        edgeList.setContainer(new EdgeList.Container());
         this.postFixCellEvaluator=new PostFixCellEvaluator(rowColumnLayout,edgeList);
         return this;
     }
@@ -34,11 +32,19 @@ public class RowColumnVisitorBuilder implements EdgeListGraphBuilder,NodeBuilder
         return  new RowColumnVisitorBuilder(rowColumnLayout);
     }
 
-    public void addAllNodes() {
-
+    private void addAllNodesInToGraphWithoutEdges() {
+        for (int row:rowColumnLayout.getContainer().keySet()){
+            for (int column:rowColumnLayout.getContainer().get(row).keySet()){
+                Cell cell=rowColumnLayout.getContainer().get(row).get(column);
+                RCNode node=RCNode.Builder.getBuilder().addRow(row).addColumn(column).build(cell);
+                edgeList.getContainer().addNode(node);
+            }
+        }
     }
 
-    public EdgeList build() {
+    public EdgeList buildGraph() {
+        addAllNodesInToGraphWithoutEdges();
+        postFixCellEvaluator.visitAllCellsAndFormDirectedGraph();
         return edgeList;
     }
 }

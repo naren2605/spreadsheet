@@ -8,9 +8,8 @@ public class RCNode extends Node {
 
     public RCNode(Integer row, Integer column, Cell cell) {
         super(row, column);
-        this.cell=cell;
+        this.cell = cell;
     }
-
 
     public boolean isFormulaCell() {
         if (cell.getData() != null && !cell.getData().matches("[0-9]+")) {
@@ -19,7 +18,45 @@ public class RCNode extends Node {
         return false;
     }
 
+    public interface RowAddition {
+        public ColumnAddition addRow(int row);
 
+    }
+
+    public interface ColumnAddition {
+        public RCNodeBuilder addColumn(int column);
+    }
+
+    public interface RCNodeBuilder {
+        public RCNode build(Cell cell);
+    }
+
+    public static class Builder implements RowAddition, ColumnAddition, RCNodeBuilder {
+        int row;
+        int column;
+
+        private Builder() {
+        }
+
+        public static RowAddition getBuilder() {
+            return new Builder();
+        }
+
+        public ColumnAddition addRow(int row) {
+            this.row = row;
+            return this;
+        }
+
+        public RCNodeBuilder addColumn(int column) {
+            this.column = column;
+            return this;
+        }
+
+        public RCNode build(Cell cell) {
+            return new RCNode(this.row, this.column, cell);
+        }
+
+    }
 
 
 }

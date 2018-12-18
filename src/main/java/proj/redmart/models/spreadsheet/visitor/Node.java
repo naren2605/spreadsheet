@@ -10,6 +10,8 @@ public class Node {
         this.column=column;
     }
 
+
+
     @Override
     public boolean equals(Object obj) {
         if(obj instanceof Node){
