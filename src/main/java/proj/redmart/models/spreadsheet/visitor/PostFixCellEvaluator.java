@@ -62,7 +62,6 @@ public class PostFixCellEvaluator {
                     if(expressionElement instanceof ReferenceElement){
                         ReferenceElement target=(ReferenceElement) expressionElement;
                         edgeList.getContainer().link(parent.getNode(),target.getNode());
-                        visit(expressionElement);
                     }
                 }
         }
