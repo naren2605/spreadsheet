@@ -6,6 +6,8 @@ public class RCNode extends Node {
 
     private Cell cell;
 
+    private String result;
+
     public RCNode(Integer row, Integer column, Cell cell) {
         super(row, column);
         this.cell = cell;
@@ -16,6 +18,18 @@ public class RCNode extends Node {
             return true;
         }
         return false;
+    }
+
+    public Cell getCell() {
+        return cell;
+    }
+
+    public void setResult(String result) {
+        this.result = result;
+    }
+
+    public String getResult() {
+        return result;
     }
 
     public interface RowAddition {
@@ -56,7 +70,9 @@ public class RCNode extends Node {
             return new RCNode(this.row, this.column, cell);
         }
 
+
     }
+
 
 
 }

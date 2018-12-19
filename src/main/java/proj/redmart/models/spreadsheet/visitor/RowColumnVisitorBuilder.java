@@ -2,6 +2,8 @@ package proj.redmart.models.spreadsheet.visitor;
 
 import proj.redmart.models.spreadsheet.Cell;
 import proj.redmart.models.spreadsheet.RowColumnLayout;
+import proj.redmart.models.spreadsheet.cellutils.InvalidCellReferenceException;
+import proj.redmart.models.spreadsheet.visitor.validators.CellParsingExceptionReport;
 
 
 public class RowColumnVisitorBuilder implements EdgeListGraphBuilder,NodeBuilder {
@@ -11,7 +13,7 @@ public class RowColumnVisitorBuilder implements EdgeListGraphBuilder,NodeBuilder
 
     private EdgeList edgeList;
 
-    private PostFixCellEvaluator postFixCellEvaluator;
+    private PostFixCellCyclicDependencyEvaluator postFixCellEvaluator;
 
 
     private RowColumnVisitorBuilder(RowColumnLayout rowColumnLayout){
@@ -21,7 +23,7 @@ public class RowColumnVisitorBuilder implements EdgeListGraphBuilder,NodeBuilder
     public NodeBuilder createEmptyGraph() {
         edgeList=new EdgeList();
         edgeList.setContainer(new EdgeList.Container());
-        this.postFixCellEvaluator=new PostFixCellEvaluator(rowColumnLayout,edgeList);
+        this.postFixCellEvaluator=new PostFixCellCyclicDependencyEvaluator(rowColumnLayout,edgeList);
         return this;
     }
 
@@ -42,9 +44,12 @@ public class RowColumnVisitorBuilder implements EdgeListGraphBuilder,NodeBuilder
         }
     }
 
-    public EdgeList buildGraph() {
+    public EdgeList buildGraph() throws InvalidCellReferenceException {
         addAllNodesInToGraphWithoutEdges();
-        postFixCellEvaluator.visitAllCellsAndFormDirectedGraph();
+        CellParsingExceptionReport report=postFixCellEvaluator.visitAllCellsAndFormDirectedGraph();
+        if(report.getMessages().hasNext()){
+            throw new InvalidCellReferenceException(report);
+        }
         return edgeList;
     }
 }

@@ -1,24 +1,22 @@
 package proj.redmart.models.spreadsheet.visitor;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class EdgeList {
 
     public static class Container{
-        private Map<Node,List<Node>> container;
+        private Map<Node,Set<Node>> container;
         private Map<Node,Node> actualNodeMap;
 
         public Container(){
-            container = new HashMap<Node, List<Node>>();
+            container = new HashMap<Node, Set<Node>>();
+            actualNodeMap=new HashMap<Node, Node>();
         }
 
         public void addNode(Node node){
             if(actualNodeMap.get(node)==null){
                 actualNodeMap.put(node,node);
-                container.put(node,new ArrayList<Node>());
+                container.put(node,new HashSet<Node>());
             }
         }
 
@@ -30,6 +28,14 @@ public class EdgeList {
 
         public Node getNode(Node queryNode){
             return actualNodeMap.get(queryNode);
+        }
+
+        public Iterator<Node> getAllNodes(){
+            return actualNodeMap.keySet().iterator();
+        }
+
+        public Iterator<Node> getLinkedNodes(Node node){
+            return container.get(node).iterator();
         }
 
     }

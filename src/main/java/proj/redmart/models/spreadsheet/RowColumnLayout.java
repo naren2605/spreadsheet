@@ -1,5 +1,6 @@
 package proj.redmart.models.spreadsheet;
 
+import proj.redmart.models.spreadsheet.visitor.Output;
 import proj.redmart.models.spreadsheet.visitor.RowColumnLayoutVisitor;
 
 import java.util.HashMap;
@@ -9,16 +10,20 @@ public class RowColumnLayout extends Layout {
 
     private Map<Integer, Map<Integer, Cell>> container;
 
-    public static void main(String[] args) {
-        RowColumnLayout layout = RowColumnLayout.Builder
-                .getBuilder().buildContainer().next()
-                .addCell(1, 2, null)
-                .addCell(2, 3, null)
-                .build();
+    private int rows;
+    private int columns;
+
+    public int getColumns() {
+        return columns;
     }
 
-    public void accept(RowColumnLayoutVisitor layOutVisitor) {
-        layOutVisitor.visit(this);
+    public int getRows() {
+        return rows;
+    }
+
+
+    public Output accept(RowColumnLayoutVisitor layOutVisitor) {
+        return layOutVisitor.visit(this);
     }
 
     public Map<Integer, Map<Integer, Cell>> getContainer() {
@@ -31,7 +36,7 @@ public class RowColumnLayout extends Layout {
 
 
     public interface CellBuilder {
-        CellBuilder addCell(int row, int column, Cell cell);
+        CellBuilder addCell(int row, int column, String cell);
 
         RowColumnLayout build();
 
@@ -41,8 +46,7 @@ public class RowColumnLayout extends Layout {
 
 
     public interface ContainerBuilder {
-        ContainerBuilder buildContainer();
-        CellBuilder next();
+        CellBuilder buildContainer(int rows,int columns);
     }
 
     public static class Builder implements ContainerBuilder, CellBuilder {
@@ -52,17 +56,17 @@ public class RowColumnLayout extends Layout {
             return new Builder();
         }
 
-        public ContainerBuilder buildContainer() {
+        public CellBuilder buildContainer(int rows, int columns) {
             rowColumnLayout = new RowColumnLayout();
+            rowColumnLayout.columns=columns;
+            rowColumnLayout.rows=rows;
             rowColumnLayout.setContainer(new HashMap<Integer, Map<Integer, Cell>>());
             return this;
         }
 
-        public Builder next() {
-            return this;
-        }
 
-        public CellBuilder addCell(int row, int column, Cell cell) {
+        public CellBuilder addCell(int row, int column, String data) {
+            Cell cell=Cell.Builder.getBuilder().add(data).build();
             if (!rowColumnLayout.getContainer().containsKey(row)) {
                 rowColumnLayout.getContainer().put(row, new HashMap<Integer, Cell>());
             }

@@ -25,11 +25,21 @@ public class Node {
         return super.equals(obj);
     }
 
+    @Override
+    public int hashCode() {
+        return (row%100000000+column%1000000000)%1000000000;
+    }
+
     public Integer getColumn() {
         return column;
     }
 
     public Integer getRow() {
         return row;
+    }
+
+    @Override
+    public String toString() {
+        return "[ "+row+":"+column+"]";
     }
 }
